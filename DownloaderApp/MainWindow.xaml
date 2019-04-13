@@ -9,13 +9,21 @@
     <Grid>
         <TextBox x:Name="txtInput" HorizontalAlignment="Left" Height="23" Margin="10,10,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="335"/>
         <Button x:Name="btnDownload" Content="Download" HorizontalAlignment="Left" Margin="350,10,0,0" VerticalAlignment="Top" Width="103" Height="23" Click="BtnDownload_Click" BorderBrush="{x:Null}" Background="#FF518EC1" Foreground="White"/>
-        <TextBlock x:Name="txtOutput" HorizontalAlignment="Left" Margin="10,315,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="68" Width="772"/>
-        <ProgressBar x:Name="prgDownload" HorizontalAlignment="Left" Height="21" Margin="10,388,0,0" VerticalAlignment="Top" Width="762" Foreground="#FF518EC1"/>
+        <TextBlock x:Name="txtOutput" HorizontalAlignment="Left" Margin="10,315,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="94" Width="772"/>
         <Button x:Name="btnCancel" Content="Cancel" HorizontalAlignment="Left" Margin="454,10,0,0" VerticalAlignment="Top" Width="103" Height="23" Background="#FF518EC1" BorderBrush="White" Foreground="White" Click="btnCancel_Click" IsEnabled="False"/>
-        <ListView x:Name="lstvDownloads" HorizontalAlignment="Left" Height="259" Margin="10,44,0,0" VerticalAlignment="Top" Width="773" IsSynchronizedWithCurrentItem="False">
+        <ListView x:Name="lstvDownloads" HorizontalAlignment="Left" Height="259" Margin="10,44,0,0" VerticalAlignment="Top" Width="762" IsSynchronizedWithCurrentItem="True">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn/>
+                    <GridViewColumn Header="FileName" Width="150" DisplayMemberBinding="{Binding FileName}"/>
+                    <GridViewColumn Header="Progreess" Width="200">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <ProgressBar Width="180" Height="10" Maximum="100" Value="{Binding Progress}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Start Time" Width="100" DisplayMemberBinding="{Binding DownloadStartTime}"/>
+                    <GridViewColumn Header="State" Width="100" DisplayMemberBinding="{Binding State}" />
                 </GridView>
             </ListView.View>
         </ListView>

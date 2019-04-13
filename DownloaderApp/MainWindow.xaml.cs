@@ -4,16 +4,13 @@ using System.Windows.Forms;
 using System.Net;
 using System.Threading;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace DownloaderApp
 {
     /// <summary>
     /// Логика взаимодействия для MainWindow.xaml
     /// </summary>
-    public class Download
-    {
-        public string FileName { get; set; }
-    }
 
     public class FolderNotSelectedException : ApplicationException
     {
@@ -30,24 +27,36 @@ namespace DownloaderApp
 
     public partial class MainWindow : Window
     {
+        private ObservableCollection<Download> downloads = new ObservableCollection<Download>();
+
+        CancellationTokenSource ctsForDownload;
+
         public MainWindow()
         {
             InitializeComponent();
+            lstvDownloads.ItemsSource = downloads;
+            lstvDownloads.SourceUpdated += LstvDownloads_SourceUpdatedEventHandler;
         }
 
-        private List<WebClient> clients = new List<WebClient>();
-
-        CancellationTokenSource ctsForDownload;
+        private void LstvDownloads_SourceUpdatedEventHandler(object sender, System.Windows.Data.DataTransferEventArgs e)
+        {
+            lstvDownloads.Items.Refresh();
+        }
 
         private void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
             using (var client = new WebClient())
             {
-                clients.Add(client);
-                lstvDownloads.Items.Add(GetFileName(txtInput.Text));
-                btnDownload.IsEnabled = false;
+                Download download = new Download(GetFileName(txtInput.Text))
+                {
+                    DownloadStartTime = DateTime.Now,
+                    Progress = 0,
+                    Client = client,
+                    State = "Downloading"
+                };
+                //btnDownload.IsEnabled = false;
                 btnCancel.IsEnabled = true;
-                txtInput.IsEnabled = false;
+                //txtInput.IsEnabled = false;
                 txtOutput.Text = string.Empty;
 
                 ctsForDownload = new CancellationTokenSource();
@@ -56,6 +65,7 @@ namespace DownloaderApp
                 {
                     client.CancelAsync();
                     txtOutput.Text += "\nDownload Cancelled.";
+                    downloads.Remove(download);
                 });
 
                 try
@@ -70,6 +80,7 @@ namespace DownloaderApp
 
                     if (string.IsNullOrWhiteSpace(path) || string.IsNullOrEmpty(path))
                     {
+                        downloads.Remove(download);
                         throw new FolderNotSelectedException(fileName);
                     }
 
@@ -79,6 +90,8 @@ namespace DownloaderApp
 
                     client.DownloadFileCompleted += DownloadFinishedEventHandler;
 
+                    downloads.Add(download);
+
                     client.DownloadFileAsync(url, fullPath);
 
                     txtOutput.Text = $"Downloading: {fileName}";
@@ -86,6 +99,7 @@ namespace DownloaderApp
                 catch (UriFormatException)
                 {
                     txtOutput.Text = "Incorrect URL";
+                    downloads.Remove(download);
                     EnableDownload();
                 }
                 catch (WebException)
@@ -102,6 +116,7 @@ namespace DownloaderApp
                 {
                     ctsForDownload.Cancel();
                     ctsForDownload.Dispose();
+                    downloads.Remove(download);
                     EnableDownload();
                 }
                 catch (Exception)
@@ -114,17 +129,35 @@ namespace DownloaderApp
 
         private void DownloadFinishedEventHandler(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
         {
+            WebClient client = (WebClient)sender;
+            Download download = GetDownloadByClient(client);
             EnableDownload();
-            prgDownload.Value = 0;
             if (!e.Cancelled)
             {
                 txtOutput.Text += $"\nDownload Finsished.";
+                download.State = "Finished";
             }
+            else
+            {
+                download.State = "Cancelled";
+            }
+            lstvDownloads.Items.Refresh();
         }
 
         private void DownloadProgressChangedEventHandler(object sender, DownloadProgressChangedEventArgs e)
         {
-            prgDownload.Value = e.ProgressPercentage;
+            WebClient client = (WebClient)sender;
+            Download download = GetDownloadByClient(client);
+
+            if (download != null)
+            {
+                download.Progress = e.ProgressPercentage;
+                lstvDownloads.Items.Refresh();
+            }
+            else
+            {
+                txtOutput.Text += "\nDownload not found!";
+            }
         }
 
         private string GetFileName(string url)
@@ -173,7 +206,18 @@ namespace DownloaderApp
             ctsForDownload.Cancel();
             ctsForDownload.Dispose();
             EnableDownload();
-            prgDownload.Value = 0;
+        }
+
+        private Download GetDownloadByClient(WebClient client)
+        {
+            foreach (var download in downloads)
+            {
+                if(download.Client == client)
+                {
+                    return download;
+                }
+            }
+            return null;
         }
     }
 }
