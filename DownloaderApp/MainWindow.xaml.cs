@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Forms;
 using System.Net;
+using System.Threading;
 
 namespace DownloaderApp
 {
@@ -28,13 +29,24 @@ namespace DownloaderApp
             InitializeComponent();
         }
 
+        CancellationTokenSource ctsForDownload;
+
         private void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
             using (WebClient client = new WebClient())
             {
                 btnDownload.IsEnabled = false;
+                btnCancel.IsEnabled = true;
                 txtInput.IsEnabled = false;
                 txtOutput.Text = string.Empty;
+
+                ctsForDownload = new CancellationTokenSource();
+
+                ctsForDownload.Token.Register(() =>
+                {
+                    client.CancelAsync();
+                    txtOutput.Text += "\nDownload Cancelled.";
+                });
 
                 try
                 {
@@ -46,7 +58,7 @@ namespace DownloaderApp
 
                     string path = SelectFolder();
 
-                    if (string.IsNullOrWhiteSpace(path))
+                    if (string.IsNullOrWhiteSpace(path) || string.IsNullOrEmpty(path))
                     {
                         throw new FolderNotSelectedException(fileName);
                     }
@@ -64,6 +76,7 @@ namespace DownloaderApp
                 catch (UriFormatException)
                 {
                     txtOutput.Text = "Incorrect URL";
+                    EnableDownload();
                 }
                 catch (WebException)
                 {
@@ -77,9 +90,9 @@ namespace DownloaderApp
                 }
                 catch (FolderNotSelectedException exception)
                 {
-                    txtOutput.Text += $"\nDownload Canceled: {exception.Message}";
+                    ctsForDownload.Cancel();
+                    ctsForDownload.Dispose();
                     EnableDownload();
-                    prgDownload.Value = 0;
                 }
                 catch (Exception)
                 {
@@ -91,9 +104,12 @@ namespace DownloaderApp
 
         private void DownloadFinishedEventHandler(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
         {
-            txtOutput.Text += $"\nDownload Finsished.";
             EnableDownload();
             prgDownload.Value = 0;
+            if (!e.Cancelled)
+            {
+                txtOutput.Text += $"\nDownload Finsished.";
+            }
         }
 
         private void DownloadProgressChangedEventHandler(object sender, DownloadProgressChangedEventArgs e)
@@ -126,7 +142,12 @@ namespace DownloaderApp
 
                 result = folderBrowserDialog.ShowDialog();
 
-                return folderBrowserDialog.SelectedPath;
+                if (result == System.Windows.Forms.DialogResult.OK)
+                {
+                    return folderBrowserDialog.SelectedPath;
+                }
+
+                return string.Empty;
             }
         }
 
@@ -134,6 +155,15 @@ namespace DownloaderApp
         {
             txtInput.IsEnabled = true;
             btnDownload.IsEnabled = true;
+            btnCancel.IsEnabled = false;
+        }
+
+        private void btnCancel_Click(object sender, RoutedEventArgs e)
+        {
+            ctsForDownload.Cancel();
+            ctsForDownload.Dispose();
+            EnableDownload();
+            prgDownload.Value = 0;
         }
     }
 }
