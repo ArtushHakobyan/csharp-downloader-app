@@ -3,12 +3,18 @@ using System.Windows;
 using System.Windows.Forms;
 using System.Net;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace DownloaderApp
 {
     /// <summary>
     /// Логика взаимодействия для MainWindow.xaml
     /// </summary>
+    public class Download
+    {
+        public string FileName { get; set; }
+    }
+
     public class FolderNotSelectedException : ApplicationException
     {
         public FolderNotSelectedException()
@@ -29,12 +35,16 @@ namespace DownloaderApp
             InitializeComponent();
         }
 
+        private List<WebClient> clients = new List<WebClient>();
+
         CancellationTokenSource ctsForDownload;
 
         private void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
-            using (WebClient client = new WebClient())
+            using (var client = new WebClient())
             {
+                clients.Add(client);
+                lstvDownloads.Items.Add(GetFileName(txtInput.Text));
                 btnDownload.IsEnabled = false;
                 btnCancel.IsEnabled = true;
                 txtInput.IsEnabled = false;
