@@ -14,6 +14,9 @@ namespace DownloaderApp
         public int Progress { get; set; }
         public WebClient Client { get; set; }
         public string State { get; set; }
+        public double DownloadSpeed { get; set; }
+
+        public string DownloadSpeedString => $"{DownloadSpeed} mb/s";
 
         public Download(string fileName)
         {

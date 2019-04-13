@@ -29,7 +29,11 @@ namespace DownloaderApp
     {
         private ObservableCollection<Download> downloads = new ObservableCollection<Download>();
 
-        CancellationTokenSource ctsForDownload;
+        private CancellationTokenSource ctsForDownload;
+
+        private long prevBytes = 0;
+
+        private DateTime lastUpdate;
 
         public MainWindow()
         {
@@ -54,9 +58,7 @@ namespace DownloaderApp
                     Client = client,
                     State = "Downloading"
                 };
-                //btnDownload.IsEnabled = false;
                 btnCancel.IsEnabled = true;
-                //txtInput.IsEnabled = false;
                 txtOutput.Text = string.Empty;
 
                 ctsForDownload = new CancellationTokenSource();
@@ -65,7 +67,6 @@ namespace DownloaderApp
                 {
                     client.CancelAsync();
                     txtOutput.Text += "\nDownload Cancelled.";
-                    downloads.Remove(download);
                 });
 
                 try
@@ -92,6 +93,8 @@ namespace DownloaderApp
 
                     downloads.Add(download);
 
+                    lastUpdate = DateTime.Now;
+
                     client.DownloadFileAsync(url, fullPath);
 
                     txtOutput.Text = $"Downloading: {fileName}";
@@ -100,7 +103,6 @@ namespace DownloaderApp
                 {
                     txtOutput.Text = "Incorrect URL";
                     downloads.Remove(download);
-                    EnableDownload();
                 }
                 catch (WebException)
                 {
@@ -117,7 +119,6 @@ namespace DownloaderApp
                     ctsForDownload.Cancel();
                     ctsForDownload.Dispose();
                     downloads.Remove(download);
-                    EnableDownload();
                 }
                 catch (Exception)
                 {
@@ -131,7 +132,6 @@ namespace DownloaderApp
         {
             WebClient client = (WebClient)sender;
             Download download = GetDownloadByClient(client);
-            EnableDownload();
             if (!e.Cancelled)
             {
                 txtOutput.Text += $"\nDownload Finsished.";
@@ -149,15 +149,18 @@ namespace DownloaderApp
             WebClient client = (WebClient)sender;
             Download download = GetDownloadByClient(client);
 
+            download.DownloadSpeed = CalculateSpeed(e.TotalBytesToReceive);
+
             if (download != null)
             {
                 download.Progress = e.ProgressPercentage;
-                lstvDownloads.Items.Refresh();
             }
             else
             {
                 txtOutput.Text += "\nDownload not found!";
             }
+
+            lstvDownloads.Items.Refresh();
         }
 
         private string GetFileName(string url)
@@ -194,18 +197,10 @@ namespace DownloaderApp
             }
         }
 
-        private void EnableDownload()
-        {
-            txtInput.IsEnabled = true;
-            btnDownload.IsEnabled = true;
-            btnCancel.IsEnabled = false;
-        }
-
         private void btnCancel_Click(object sender, RoutedEventArgs e)
         {
             ctsForDownload.Cancel();
             ctsForDownload.Dispose();
-            EnableDownload();
         }
 
         private Download GetDownloadByClient(WebClient client)
@@ -218,6 +213,25 @@ namespace DownloaderApp
                 }
             }
             return null;
+        }
+
+        private double CalculateSpeed(long BytesRecieved)
+        {
+            var time = DateTime.Now - lastUpdate;
+
+            long bytes = BytesRecieved - prevBytes;
+
+            long kb = bytes / 1024;
+
+            long mb = kb / 1024;
+
+            double speed = mb / time.TotalSeconds;
+
+            lastUpdate = DateTime.Now;
+
+            prevBytes = BytesRecieved;
+
+            return speed;
         }
     }
 }

@@ -5,13 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DownloaderApp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="CSharp File Downloader" Height="450" Width="800" ResizeMode="NoResize">
     <Grid>
         <TextBox x:Name="txtInput" HorizontalAlignment="Left" Height="23" Margin="10,10,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="335"/>
         <Button x:Name="btnDownload" Content="Download" HorizontalAlignment="Left" Margin="350,10,0,0" VerticalAlignment="Top" Width="103" Height="23" Click="BtnDownload_Click" BorderBrush="{x:Null}" Background="#FF518EC1" Foreground="White"/>
-        <TextBlock x:Name="txtOutput" HorizontalAlignment="Left" Margin="10,315,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="94" Width="772"/>
+        <TextBlock x:Name="txtOutput" HorizontalAlignment="Left" Margin="10,339,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="70" Width="772"/>
         <Button x:Name="btnCancel" Content="Cancel" HorizontalAlignment="Left" Margin="454,10,0,0" VerticalAlignment="Top" Width="103" Height="23" Background="#FF518EC1" BorderBrush="White" Foreground="White" Click="btnCancel_Click" IsEnabled="False"/>
-        <ListView x:Name="lstvDownloads" HorizontalAlignment="Left" Height="259" Margin="10,44,0,0" VerticalAlignment="Top" Width="762" IsSynchronizedWithCurrentItem="True">
+        <ListView x:Name="lstvDownloads" HorizontalAlignment="Left" Height="259" Margin="10,44,0,0" VerticalAlignment="Top" Width="762" IsSynchronizedWithCurrentItem="True" BorderBrush="#FF518EC1">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="FileName" Width="150" DisplayMemberBinding="{Binding FileName}"/>
@@ -27,6 +27,7 @@
                 </GridView>
             </ListView.View>
         </ListView>
+        <Label x:Name="lblOutput" Content="Output" HorizontalAlignment="Left" Margin="10,308,0,0" VerticalAlignment="Top"/>
 
     </Grid>
 </Window>
