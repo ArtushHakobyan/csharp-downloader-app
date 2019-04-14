@@ -11,29 +11,14 @@ namespace DownloaderApp
     /// <summary>
     /// Логика взаимодействия для MainWindow.xaml
     /// </summary>
-
-    public class FolderNotSelectedException : ApplicationException
-    {
-        public FolderNotSelectedException()
-        {
-
-        }
-
-        public FolderNotSelectedException(string msg):base(msg)
-        {
-
-        }
-    }
-
+    
     public partial class MainWindow : Window
     {
-        private ObservableCollection<Download> downloads = new ObservableCollection<Download>();
+        public static ObservableCollection<Download> downloads = new ObservableCollection<Download>();
+
+        public static List<WebClient> clients = new List<WebClient>();
 
         private CancellationTokenSource ctsForDownload;
-
-        private long prevBytes = 0;
-
-        private DateTime lastUpdate;
 
         public MainWindow()
         {
@@ -51,15 +36,14 @@ namespace DownloaderApp
         {
             using (var client = new WebClient())
             {
+                clients.Add(client);
                 Download download = new Download(GetFileName(txtInput.Text))
                 {
                     DownloadStartTime = DateTime.Now,
                     Progress = 0,
                     Client = client,
-                    State = "Downloading"
+                    State = States.Downloading
                 };
-                btnCancel.IsEnabled = true;
-                txtOutput.Text = string.Empty;
 
                 ctsForDownload = new CancellationTokenSource();
 
@@ -75,7 +59,7 @@ namespace DownloaderApp
 
                     Uri url = new Uri(inputText);
 
-                    string fileName = GetFileName(inputText);
+                    string fileName = url.GetFileName();
 
                     string path = SelectFolder();
 
@@ -92,8 +76,6 @@ namespace DownloaderApp
                     client.DownloadFileCompleted += DownloadFinishedEventHandler;
 
                     downloads.Add(download);
-
-                    lastUpdate = DateTime.Now;
 
                     client.DownloadFileAsync(url, fullPath);
 
@@ -131,15 +113,17 @@ namespace DownloaderApp
         private void DownloadFinishedEventHandler(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
         {
             WebClient client = (WebClient)sender;
-            Download download = GetDownloadByClient(client);
+
+            Download download = client.GetDownload();
+
             if (!e.Cancelled)
             {
                 txtOutput.Text += $"\nDownload Finsished.";
-                download.State = "Finished";
+                download.State = States.Finsished;
             }
             else
             {
-                download.State = "Cancelled";
+                download.State = States.Cancelled;
             }
             lstvDownloads.Items.Refresh();
         }
@@ -147,9 +131,8 @@ namespace DownloaderApp
         private void DownloadProgressChangedEventHandler(object sender, DownloadProgressChangedEventArgs e)
         {
             WebClient client = (WebClient)sender;
-            Download download = GetDownloadByClient(client);
 
-            download.DownloadSpeed = CalculateSpeed(e.TotalBytesToReceive);
+            Download download = client.GetDownload();
 
             if (download != null)
             {
@@ -199,39 +182,34 @@ namespace DownloaderApp
 
         private void btnCancel_Click(object sender, RoutedEventArgs e)
         {
-            ctsForDownload.Cancel();
-            ctsForDownload.Dispose();
-        }
+            Download download = lstvDownloads.SelectedItem as Download;
 
-        private Download GetDownloadByClient(WebClient client)
-        {
-            foreach (var download in downloads)
+            if (download.State != States.Cancelled)
             {
-                if(download.Client == client)
-                {
-                    return download;
-                }
+                download.Cts.Cancel();
+                download.Cts.Dispose();
             }
-            return null;
+
+            //ctsForDownload.Cancel();
+            //ctsForDownload.Dispose();
         }
 
-        private double CalculateSpeed(long BytesRecieved)
+        private void LstvDownloads_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            var time = DateTime.Now - lastUpdate;
+            btnCancel.IsEnabled = true;
+        }
+    }
 
-            long bytes = BytesRecieved - prevBytes;
+    public class FolderNotSelectedException : ApplicationException
+    {
+        public FolderNotSelectedException()
+        {
 
-            long kb = bytes / 1024;
+        }
 
-            long mb = kb / 1024;
+        public FolderNotSelectedException(string msg) : base(msg)
+        {
 
-            double speed = mb / time.TotalSeconds;
-
-            lastUpdate = DateTime.Now;
-
-            prevBytes = BytesRecieved;
-
-            return speed;
         }
     }
 }
