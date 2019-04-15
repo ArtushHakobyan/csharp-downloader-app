@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 using System.Net;
@@ -32,19 +33,12 @@ namespace DownloaderApp
             lstvDownloads.Items.Refresh();
         }
 
-        private void BtnDownload_Click(object sender, RoutedEventArgs e)
+        private async void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
             using (var client = new WebClient())
             {
                 clients.Add(client);
-                Download download = new Download(GetFileName(txtInput.Text))
-                {
-                    DownloadStartTime = DateTime.Now,
-                    Progress = 0,
-                    Client = client,
-                    State = States.Downloading
-                };
-
+                
                 ctsForDownload = new CancellationTokenSource();
 
                 ctsForDownload.Token.Register(() =>
@@ -53,6 +47,16 @@ namespace DownloaderApp
                     txtOutput.Text += "\nDownload Cancelled.";
                 });
 
+                string path = SelectFolder();
+
+                Download download = new Download(GetFileName(txtInput.Text), path)
+                {
+                    DownloadStartTime = DateTime.Now,
+                    Progress = 0,
+                    Client = client,
+                    State = States.Downloading
+                };
+
                 try
                 {
                     string inputText = txtInput.Text;
@@ -60,9 +64,7 @@ namespace DownloaderApp
                     Uri url = new Uri(inputText);
 
                     string fileName = url.GetFileName();
-
-                    string path = SelectFolder();
-
+                    
                     if (string.IsNullOrWhiteSpace(path) || string.IsNullOrEmpty(path))
                     {
                         downloads.Remove(download);
@@ -124,6 +126,7 @@ namespace DownloaderApp
             else
             {
                 download.State = States.Cancelled;
+                File.Delete(Path.Combine(download.Path, download.FileName));
             }
             lstvDownloads.Items.Refresh();
         }
@@ -186,8 +189,8 @@ namespace DownloaderApp
 
             if (download.State != States.Cancelled)
             {
-                download.Cts.Cancel();
-                download.Cts.Dispose();
+                download.Cts.Cancel();                
+                download.Cts.Dispose();            
             }
 
             //ctsForDownload.Cancel();
