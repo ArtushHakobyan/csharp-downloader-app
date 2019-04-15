@@ -20,6 +20,7 @@ namespace DownloaderApp
         private static int _count = 0;
 
         public int ID { get; set; }
+        public string Path { get; set; }
         public string FileName { get; set; }
         public DateTime DownloadStartTime { get; set; }
         public int Progress { get; set; }
@@ -30,9 +31,10 @@ namespace DownloaderApp
 
         public string DownloadSpeedString => $"{DownloadSpeed} mb/s";
 
-        public Download(string fileName)
+        public Download(string fileName, string path)
         {
             FileName = fileName;
+            Path = path;
             DownloadStartTime = DateTime.Now;
             _count++;
             ID = _count;
