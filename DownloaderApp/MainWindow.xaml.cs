@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Windows.Threading;
 
 namespace DownloaderApp
 {
@@ -17,15 +18,29 @@ namespace DownloaderApp
     {
         public static ObservableCollection<Download> downloads = new ObservableCollection<Download>();
 
+        private static List<Download> list;
+
         public static List<WebClient> clients = new List<WebClient>();
 
         private CancellationTokenSource ctsForDownload;
+
+        private DispatcherTimer timer;
 
         public MainWindow()
         {
             InitializeComponent();
             lstvDownloads.ItemsSource = downloads;
             lstvDownloads.SourceUpdated += LstvDownloads_SourceUpdatedEventHandler;
+            timer = new DispatcherTimer();
+            timer.Tick += Timer_Tick;
+            timer.Interval = new TimeSpan(0, 0, 1);
+            timer.Start();
+        }
+
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            //if(lstvDownloads.SelectedItem != null)
+                //prgCurrDownload.Value = ((Download)lstvDownloads.SelectedItem).Progress;
         }
 
         private void LstvDownloads_SourceUpdatedEventHandler(object sender, System.Windows.Data.DataTransferEventArgs e)
@@ -33,7 +48,7 @@ namespace DownloaderApp
             lstvDownloads.Items.Refresh();
         }
 
-        private async void BtnDownload_Click(object sender, RoutedEventArgs e)
+        private void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
             using (var client = new WebClient())
             {
@@ -145,6 +160,9 @@ namespace DownloaderApp
             {
                 txtOutput.Text += "\nDownload not found!";
             }
+
+            if (lstvDownloads.SelectedItem != null)
+                prgCurrDownload.Value = ((Download)lstvDownloads.SelectedItem).Progress;
 
             lstvDownloads.Items.Refresh();
         }
